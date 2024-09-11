@@ -77,7 +77,6 @@ def generate_reports(session: Session, threshold: float) -> dict[str, dict[str, 
         '60 min': current_time - timedelta(hours=1),
         '6 hours': current_time - timedelta(hours=6),
         '12 hours': current_time - timedelta(hours=12),
-        '24 hours': current_time - timedelta(days=1)
     }
 
     reports = {}
@@ -120,8 +119,10 @@ def format_telegram_messages(
 
     for exchange, intervals in reports.items():
         message_parts = [f"Біржа: {exchange}\n"]  # Зберігаємо частини повідомлення
+
         for interval, changes in intervals.items():
             message_parts.append(f"\nІнтервал {interval}:\n-------------------------\n")
+
             for change in changes:
                 price = f"{change['price']:.6f}"  # Форматування до 6 десяткових знаків
                 change_percentage = f"{change['change_percentage']:.2f}"

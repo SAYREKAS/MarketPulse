@@ -119,18 +119,18 @@ def format_telegram_messages(
     messages = {}
 
     for exchange, intervals in reports.items():
-        message = f"Біржа: {exchange}\n"
+        message_parts = [f"Біржа: {exchange}\n"]  # Зберігаємо частини повідомлення
         for interval, changes in intervals.items():
-            message += f"\nІнтервал {interval}:\n-------------------------\n"
+            message_parts.append(f"\nІнтервал {interval}:\n-------------------------\n")
             for change in changes:
                 price = f"{change['price']:.6f}"  # Форматування до 6 десяткових знаків
                 change_percentage = f"{change['change_percentage']:.2f}"
                 market_pair = change['market_pair'].split(" ")[0]
-                message += (
+                message_parts.append(
                     f"<a href='{change['market_url']}'>{market_pair}</a>:\n"
                     f"{change_percentage}% за {price} USD\n"
                 )
-        messages[exchange] = message
+        messages[exchange] = ''.join(message_parts)  # Об'єднуємо частини в один рядок
 
     return messages
 

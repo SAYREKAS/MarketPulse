@@ -1,14 +1,13 @@
 import os
 import requests
 from time import sleep
-from typing import Union
-
-from loguru import logger
-from sqlalchemy import and_
-from dotenv import load_dotenv
-
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import and_
+from loguru import logger
+from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+
 from database import MarketPairData, SessionLocal
 
 load_dotenv()
@@ -29,8 +28,7 @@ class MarketPairRepository:
 
 
 def filter_significant_changes(
-        market_data: list[MarketPairData], threshold: float, processed_market_pairs: set[str]
-) -> list[dict[str, Union[str, float, datetime]]]:
+        market_data: list[MarketPairData], threshold: float, processed_market_pairs: set[str]) -> list[dict]:
     """
     Фільтрує пари, ціна яких змінилася більше ніж на threshold% за інтервал.
     Залишає торгові пари, які ще не були оброблені.
@@ -53,9 +51,8 @@ def filter_significant_changes(
             price_change = ((record.price - initial_price) / initial_price) * 100
             if abs(price_change) >= threshold:
                 significant_changes.append({
-                    'market_pair': record.market_pair,
+                    'market_pair': f"{record.market_pair} ({record.exchange_name})",
                     'price': record.price,
-                    'exchange_name': record.exchange_name,
                     'change_percentage': price_change,
                     'timestamp': record.timestamp,
                     'market_url': record.market_url
@@ -66,7 +63,7 @@ def filter_significant_changes(
     return significant_changes
 
 
-def generate_reports(session: Session, threshold: float) -> dict[str, list[dict[str, Union[str, float, datetime]]]]:
+def generate_reports(session: Session, threshold: float) -> dict[str, dict[str, list[dict]]]:
     """
     Генеруємо звіти по ринкових парах для інтервалів часу, уникаючи повторення пар.
     """
@@ -84,40 +81,49 @@ def generate_reports(session: Session, threshold: float) -> dict[str, list[dict[
     processed_market_pairs = set()  # Множина для зберігання оброблених торгових пар
 
     repository = MarketPairRepository(session)
+    exchanges = {record.exchange_name for record in session.query(MarketPairData.exchange_name).distinct()}
 
-    for interval_name, start_time in sorted(intervals.items(), key=lambda x: x[1], reverse=True):
-        market_data = repository.get_market_pairs_in_timeframe(start_time, current_time)
-        report = filter_significant_changes(market_data, threshold, processed_market_pairs)
-        if report:
-            reports[interval_name] = report
+    for exchange in exchanges:
+        exchange_reports = {}
+        for interval_name, start_time in sorted(intervals.items(), key=lambda x: x[1], reverse=True):
+            market_data = repository.get_market_pairs_in_timeframe(start_time, current_time)
+            # Фільтруємо дані по біржі
+            filtered_data = [data for data in market_data if data.exchange_name == exchange]
+            report = filter_significant_changes(filtered_data, threshold, processed_market_pairs)
+            if report:
+                exchange_reports[interval_name] = report
+
+        if exchange_reports:
+            reports[exchange] = exchange_reports
 
     return reports
 
 
-def format_telegram_messages(reports: dict[str, list[dict[str, Union[str, float, datetime]]]]) -> dict[str, str]:
+def format_telegram_messages(
+        reports: dict[str, dict[str, list[dict[str, str | float | datetime]]]]) -> dict[str, str]:
     """
-    Формуємо текстові повідомлення для кожного інтервалу часу.
+    Формуємо текстові повідомлення для кожної біржі і кожного інтервалу часу.
+    URL буде інтегровано в назву торгової пари, щоб зробити її клікабельною у HTML форматі.
     """
     messages = {}
 
-    for interval, changes in reports.items():
-        message = (f"Інтервал {interval}:\n"
-                   f"-------------------------\n")
-        for change in changes:
-            message += (
-                f"{change['market_pair']} ({change['exchange_name']}): "
-                f"{change['change_percentage']:.2f}% за {change['price']} USD\n"
-                f"URL: {change['market_url']}\n"
-                "-------------------------\n"
-            )
-        messages[interval] = message
+    for exchange, intervals in reports.items():
+        message = f"Біржа: {exchange}\n"
+        for interval, changes in intervals.items():
+            message += f"\nІнтервал {interval}:\n-------------------------\n"
+            for change in changes:
+                message += (
+                    f"<a href='{change['market_url']}'>{change['market_pair']}</a>:\n"
+                    f"{change['change_percentage']:.2f}% за {change['price']} USD\n"
+                )
+        messages[exchange] = message
 
     return messages
 
 
 def send_telegram_message(token: str, chat_id: str, message: str) -> None:
     """
-    Надсилаємо повідомлення в Telegram.
+    Надсилаємо повідомлення в Telegram з HTML форматуванням.
     """
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     data = {

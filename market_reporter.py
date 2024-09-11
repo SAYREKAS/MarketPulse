@@ -14,6 +14,7 @@ from database import MarketPairData, SessionLocal
 
 load_dotenv()
 
+logger.remove()
 logger.add(sys.stdout, colorize=True)
 
 

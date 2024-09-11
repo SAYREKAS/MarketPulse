@@ -7,6 +7,7 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 from database import MarketPairData, SessionLocal
 
+logger.remove()
 logger.add(sys.stdout, colorize=True)
 
 

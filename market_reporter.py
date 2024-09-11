@@ -122,8 +122,9 @@ def format_telegram_messages(
             for change in changes:
                 price = f"{change['price']:.6f}"  # Форматування до 6 десяткових знаків
                 change_percentage = f"{change['change_percentage']:.2f}"
+                market_pair = change['market_pair'].split(" ")[0]
                 message += (
-                    f"<a href='{change['market_url']}'>{change['market_pair']}</a>:\n"
+                    f"<a href='{change['market_url']}'>{market_pair}</a>:\n"
                     f"{change_percentage}% за {price} USD\n"
                 )
         messages[exchange] = message

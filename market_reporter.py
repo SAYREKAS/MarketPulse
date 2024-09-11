@@ -1,12 +1,15 @@
 import os
 import requests
-from dotenv import load_dotenv
-from sqlalchemy.orm import Session
+from time import sleep
+from typing import Union
+
+from loguru import logger
 from sqlalchemy import and_
+from dotenv import load_dotenv
+
+from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from database import MarketPairData, SessionLocal
-from time import sleep
-from loguru import logger
 
 load_dotenv()
 
@@ -15,7 +18,7 @@ class MarketPairRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def get_market_pairs_in_timeframe(self, start_time: datetime, end_time: datetime):
+    def get_market_pairs_in_timeframe(self, start_time: datetime, end_time: datetime) -> list[[MarketPairData]]:
         """Отримуємо всі ринкові пари за певний інтервал часу."""
         return (
             self.session.query(MarketPairData)
@@ -25,7 +28,9 @@ class MarketPairRepository:
         )
 
 
-def filter_significant_changes(market_data, threshold: float, processed_market_pairs: set) -> list:
+def filter_significant_changes(
+        market_data: list[MarketPairData], threshold: float, processed_market_pairs: set[str]
+) -> list[dict[str, Union[str, float, datetime]]]:
     """
     Фільтрує пари, ціна яких змінилася більше ніж на threshold% за інтервал.
     Залишає торгові пари, які ще не були оброблені.
@@ -61,18 +66,18 @@ def filter_significant_changes(market_data, threshold: float, processed_market_p
     return significant_changes
 
 
-def generate_reports(session: Session, threshold: float) -> dict:
+def generate_reports(session: Session, threshold: float) -> dict[str, list[dict[str, Union[str, float, datetime]]]]:
     """
     Генеруємо звіти по ринкових парах для інтервалів часу, уникаючи повторення пар.
     """
     current_time = datetime.now(timezone.utc)
     intervals = {
-        '10_min': current_time - timedelta(minutes=10),
-        '30_min': current_time - timedelta(minutes=30),
-        '60_min': current_time - timedelta(hours=1),
-        '6_hours': current_time - timedelta(hours=6),
-        '12_hours': current_time - timedelta(hours=12),
-        '24_hours': current_time - timedelta(days=1)
+        '10 min': current_time - timedelta(minutes=10),
+        '30 min': current_time - timedelta(minutes=30),
+        '60 min': current_time - timedelta(hours=1),
+        '6 hours': current_time - timedelta(hours=6),
+        '12 hours': current_time - timedelta(hours=12),
+        '24 hours': current_time - timedelta(days=1)
     }
 
     reports = {}
@@ -89,7 +94,7 @@ def generate_reports(session: Session, threshold: float) -> dict:
     return reports
 
 
-def format_telegram_messages(reports: dict[str, list[dict]]) -> dict[str, str]:
+def format_telegram_messages(reports: dict[str, list[dict[str, Union[str, float, datetime]]]]) -> dict[str, str]:
     """
     Формуємо текстові повідомлення для кожного інтервалу часу.
     """

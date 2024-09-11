@@ -1,3 +1,4 @@
+import sys
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -5,6 +6,8 @@ from loguru import logger
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 from database import MarketPairData, SessionLocal
+
+logger.add(sys.stdout, colorize=True)
 
 
 def delete_old_records(session: Session, days: int = 7) -> None:

@@ -1,4 +1,6 @@
 import os
+import sys
+
 import requests
 from time import sleep
 from datetime import datetime, timedelta, timezone
@@ -11,6 +13,8 @@ from sqlalchemy.orm import Session
 from database import MarketPairData, SessionLocal
 
 load_dotenv()
+
+logger.add(sys.stdout, colorize=True)
 
 
 class MarketPairRepository:

@@ -1,6 +1,7 @@
 import json
-import random
+import sys
 import time
+import random
 from random import uniform
 from datetime import datetime
 
@@ -14,6 +15,7 @@ from pydantic import BaseModel, ValidationError
 
 from database import SessionLocal, MarketPairData
 
+logger.add(sys.stdout, colorize=True)
 
 class MarketPairQuote(BaseModel):
     id: str

@@ -36,7 +36,7 @@ def filter_significant_changes(
         market_data: list[MarketPairData], threshold: float, processed_market_pairs: set[str]) -> list[dict]:
     """
     Фільтрує пари, ціна яких змінилася більше ніж на threshold% за інтервал.
-    Залишає торгові пари, які ще не були оброблені.
+    Залишає торгові пари, які ще не були оброблені. Відсортовує пари за зміною ціни.
     """
     significant_changes = []
     market_pairs = {}
@@ -67,6 +67,9 @@ def filter_significant_changes(
                 processed_market_pairs.add(market_pair)  # Додаємо пару до оброблених
                 # Оскільки зміна знайдена, більше перевірок для цієї пари не потрібно
                 del market_pairs[market_pair]
+
+    # Сортуємо результати за change_percentage
+    significant_changes.sort(key=lambda x: x['change_percentage'])
 
     return significant_changes
 

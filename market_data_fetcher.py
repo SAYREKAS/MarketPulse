@@ -1,5 +1,6 @@
-import json
+import os
 import sys
+import json
 import time
 import random
 from typing import Optional
@@ -214,5 +215,8 @@ def process_market_pair_data(coin_limit: int, exchanges: list[str], save: bool) 
 
 
 if __name__ == '__main__':
-    ex = ['binance', 'mexc']
-    process_market_pair_data(coin_limit=10, exchanges=ex, save=True)
+    process_market_pair_data(
+        coin_limit=500,
+        exchanges=os.getenv('EXCHANGES').split(','),
+        save=False
+    )

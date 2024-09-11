@@ -114,8 +114,7 @@ def generate_reports(session: Session, threshold: float) -> dict[str, dict[str, 
     return reports
 
 
-def format_telegram_messages(
-        reports: dict[str, dict[str, list[dict[str, str | float | datetime]]]]) -> dict[str, str]:
+def format_telegram_messages(reports: dict[str, dict[str, list[dict[str, str | float | datetime]]]]) -> dict[str, str]:
     """
     Формуємо текстові повідомлення для кожної біржі і кожного інтервалу часу.
     URL буде інтегровано в назву торгової пари, щоб зробити її клікабельною у HTML форматі.
@@ -126,9 +125,11 @@ def format_telegram_messages(
         message_parts = [f"Біржа: {exchange}\n"]  # Зберігаємо частини повідомлення
 
         for interval, changes in intervals.items():
+            # Сортуємо зміни за 'change_percentage' перед формуванням повідомлення
+            sorted_changes = sorted(changes, key=lambda x: x['change_percentage'])
             message_parts.append(f"\nІнтервал {interval}:\n-------------------------\n")
 
-            for change in changes:
+            for change in sorted_changes:
                 price = f"{change['price']:.6f}"  # Форматування до 6 десяткових знаків
                 change_percentage = f"{change['change_percentage']:.2f}"
                 market_pair = change['market_pair'].split(" ")[0]

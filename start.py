@@ -29,7 +29,7 @@ def generate_reports():
 def remove_old_records():
     while True:
         with SessionLocal() as db_session:
-            delete_old_records(session=db_session, days=int(os.getenv('DAYS_TO_REMOVE')))
+            delete_old_records(session=db_session, hours=int(os.getenv('HOURS_TO_REMOVE')))
         sleep(int(os.getenv('REMOVE_CHECK_INTERVAL')))
 
 

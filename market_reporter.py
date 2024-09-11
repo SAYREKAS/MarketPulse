@@ -37,28 +37,31 @@ def filter_significant_changes(
     market_pairs = {}
 
     for data in market_data:
-        if data.market_pair not in market_pairs:
-            market_pairs[data.market_pair] = [data]
-        else:
-            market_pairs[data.market_pair].append(data)
+        market_pair = data.market_pair
 
-    for market_pair, records in market_pairs.items():
+        # Пропускаємо вже оброблені пари
         if market_pair in processed_market_pairs:
             continue
 
-        initial_price = records[0].price
-        for record in records[1:]:
-            price_change = ((record.price - initial_price) / initial_price) * 100
+        # Якщо це перший запис для ринкової пари, зберігаємо його як початкову ціну
+        if market_pair not in market_pairs:
+            market_pairs[market_pair] = data
+        else:
+            initial_price = market_pairs[market_pair].price
+            price_change = ((data.price - initial_price) / initial_price) * 100
+
+            # Якщо зміна ціни перевищує поріг, додаємо пару у значні зміни
             if abs(price_change) >= threshold:
                 significant_changes.append({
-                    'market_pair': f"{record.market_pair} ({record.exchange_name})",
-                    'price': record.price,
+                    'market_pair': f"{data.market_pair} ({data.exchange_name})",
+                    'price': data.price,
                     'change_percentage': price_change,
-                    'timestamp': record.timestamp,
-                    'market_url': record.market_url
+                    'timestamp': data.timestamp,
+                    'market_url': data.market_url
                 })
-                processed_market_pairs.add(record.market_pair)  # Додаємо пару в оброблені
-                break
+                processed_market_pairs.add(market_pair)  # Додаємо пару до оброблених
+                # Оскільки зміна знайдена, більше перевірок для цієї пари не потрібно
+                del market_pairs[market_pair]
 
     return significant_changes
 
@@ -184,5 +187,5 @@ if __name__ == '__main__':
         threshold=10.0,
         check_interval=600,
         telegram_token=os.getenv('TG_TOKEN'),
-        telegram_chat_id="-1002281937136"
+        telegram_chat_id=os.getenv('TG_CHAT_ID')
     )

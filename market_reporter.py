@@ -1,0 +1,162 @@
+import os
+import requests
+from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+from sqlalchemy import and_
+from datetime import datetime, timedelta, timezone
+from database import MarketPairData, SessionLocal
+from time import sleep
+from loguru import logger
+
+load_dotenv()
+
+
+class MarketPairRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def get_market_pairs_in_timeframe(self, start_time: datetime, end_time: datetime):
+        """Отримуємо всі ринкові пари за певний інтервал часу."""
+        return (
+            self.session.query(MarketPairData)
+            .filter(and_(MarketPairData.timestamp >= start_time, MarketPairData.timestamp <= end_time))
+            .order_by(MarketPairData.market_pair, MarketPairData.timestamp)
+            .all()
+        )
+
+
+def filter_significant_changes(market_data, threshold: float, processed_market_pairs: set) -> list:
+    """
+    Фільтрує пари, ціна яких змінилася більше ніж на threshold% за інтервал.
+    Залишає торгові пари, які ще не були оброблені.
+    """
+    significant_changes = []
+    market_pairs = {}
+
+    for data in market_data:
+        if data.market_pair not in market_pairs:
+            market_pairs[data.market_pair] = [data]
+        else:
+            market_pairs[data.market_pair].append(data)
+
+    for market_pair, records in market_pairs.items():
+        if market_pair in processed_market_pairs:
+            continue
+
+        initial_price = records[0].price
+        for record in records[1:]:
+            price_change = ((record.price - initial_price) / initial_price) * 100
+            if abs(price_change) >= threshold:
+                significant_changes.append({
+                    'market_pair': record.market_pair,
+                    'price': record.price,
+                    'exchange_name': record.exchange_name,
+                    'change_percentage': price_change,
+                    'timestamp': record.timestamp,
+                    'market_url': record.market_url
+                })
+                processed_market_pairs.add(record.market_pair)  # Додаємо пару в оброблені
+                break
+
+    return significant_changes
+
+
+def generate_reports(session: Session, threshold: float) -> dict:
+    """
+    Генеруємо звіти по ринкових парах для інтервалів часу, уникаючи повторення пар.
+    """
+    current_time = datetime.now(timezone.utc)
+    intervals = {
+        '10_min': current_time - timedelta(minutes=10),
+        '30_min': current_time - timedelta(minutes=30),
+        '60_min': current_time - timedelta(hours=1),
+        '6_hours': current_time - timedelta(hours=6),
+        '12_hours': current_time - timedelta(hours=12),
+        '24_hours': current_time - timedelta(days=1)
+    }
+
+    reports = {}
+    processed_market_pairs = set()  # Множина для зберігання оброблених торгових пар
+
+    repository = MarketPairRepository(session)
+
+    for interval_name, start_time in sorted(intervals.items(), key=lambda x: x[1], reverse=True):
+        market_data = repository.get_market_pairs_in_timeframe(start_time, current_time)
+        report = filter_significant_changes(market_data, threshold, processed_market_pairs)
+        if report:
+            reports[interval_name] = report
+
+    return reports
+
+
+def format_telegram_messages(reports: dict[str, list[dict]]) -> dict[str, str]:
+    """
+    Формуємо текстові повідомлення для кожного інтервалу часу.
+    """
+    messages = {}
+
+    for interval, changes in reports.items():
+        message = (f"Інтервал {interval}:\n"
+                   f"-------------------------\n")
+        for change in changes:
+            message += (
+                f"{change['market_pair']} ({change['exchange_name']}): "
+                f"{change['change_percentage']:.2f}% за {change['price']} USD\n"
+                f"URL: {change['market_url']}\n"
+                "-------------------------\n"
+            )
+        messages[interval] = message
+
+    return messages
+
+
+def send_telegram_message(token: str, chat_id: str, message: str) -> None:
+    """
+    Надсилаємо повідомлення в Telegram.
+    """
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    data = {
+        'chat_id': chat_id,
+        'text': message,
+        'parse_mode': 'HTML'
+    }
+
+    response = None
+
+    try:
+        response = requests.post(url, data=data)
+        response.raise_for_status()
+        logger.info('Message sent successfully!')
+        logger.debug(f"Response content: {response.text}")  # Виведення вмісту відповіді
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"HTTP error occurred: {http_err}")
+        logger.debug(f"Response content: {response.text}")  # Виведення вмісту відповіді
+    except Exception as err:
+        logger.error(f"Other error occurred: {err}")
+    else:
+        if response:
+            logger.debug(f"Response content: {response.text}")  # Виведення вмісту відповіді
+
+
+def run_report_generation(threshold: float, check_interval: int, telegram_token: str, telegram_chat_id: str) -> None:
+    """
+    Основна функція, яка керує процесом збору даних, формування звітів та відправлення повідомлень у Telegram.
+    """
+    while True:
+        with SessionLocal() as session:
+            reports = generate_reports(session, threshold)
+            if reports:
+                messages = format_telegram_messages(reports)
+                for message in messages.values():
+                    send_telegram_message(telegram_token, telegram_chat_id, message)
+        sleep(check_interval)
+
+
+if __name__ == '__main__':
+    logger.info("Starting report generation")
+    run_report_generation(
+        threshold=10.0,
+        check_interval=600,
+        telegram_token=os.getenv('TG_TOKEN'),
+        telegram_chat_id="-1002281937136"
+    )

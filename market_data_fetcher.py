@@ -174,7 +174,7 @@ def save_market_pair_data_bulk(session: Session, market_pairs_list: list[dict]) 
         stmt = insert(MarketPairData).values(market_pairs_list)
         session.execute(stmt)
         session.commit()
-        logger.success("Дані успішно збережені у базу даних.\n")
+        logger.success("Дані успішно збережені у базу даних.")
 
     except Exception as e:
         session.rollback()

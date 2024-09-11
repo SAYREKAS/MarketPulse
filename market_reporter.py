@@ -83,8 +83,7 @@ def generate_reports(session: Session, threshold: float) -> dict[str, dict[str, 
         '10 min': current_time - timedelta(minutes=10),
         '30 min': current_time - timedelta(minutes=30),
         '60 min': current_time - timedelta(hours=1),
-        '6 hours': current_time - timedelta(hours=6),
-        '12 hours': current_time - timedelta(hours=12),
+        '3 hours': current_time - timedelta(hours=3),
     }
 
     reports = {}
@@ -121,7 +120,9 @@ def format_telegram_messages(reports: dict[str, dict[str, list[dict[str, str | f
     """
     Формуємо текстові повідомлення для кожної біржі і кожного інтервалу часу.
     URL буде інтегровано в назву торгової пари, щоб зробити її клікабельною у HTML форматі.
+    Рядки вирівнюються пробілами для відповідності ширині рядка у 40 символів.
     """
+    max_line_length = 30  # Максимальна довжина рядка на телефоні
     messages = {}
 
     for exchange, intervals in reports.items():
@@ -130,13 +131,23 @@ def format_telegram_messages(reports: dict[str, dict[str, list[dict[str, str | f
         for interval, changes in intervals.items():
             # Сортуємо зміни за 'change_percentage' перед формуванням повідомлення
             sorted_changes = sorted(changes, key=lambda x: x['change_percentage'])
-            message_parts.append(f"\nІнтервал {interval}:\n-------------------------\n")
+            message_parts.append(f"\n{interval}:\n{'-' * max_line_length}\n")
 
             for change in sorted_changes:
-                price = f"{change['price']:.6f}"  # Форматування до 6 десяткових знаків
-                change_percentage = f"{change['change_percentage']:.2f}"
                 market_pair = change['market_pair'].split(" ")[0]
-                message_parts.append(f"<a href='{change['market_url']}'>{market_pair}</a>: {change_percentage}%\n")
+                change_percentage = f"{change['change_percentage']:.2f}%"
+
+                # Довжина рядка з ринковою парою і зміною в процентах
+                total_length = len(market_pair) + len(change_percentage)
+
+                # Кількість пробілів для вирівнювання рядка до max_line_length
+                spaces_needed = max_line_length - total_length  # '- 2' для двокрапки і пробілу
+                spaces = " " * spaces_needed if spaces_needed > 0 else ""
+
+                # Формуємо рядок з посиланням та вирівняним відсотком зміни
+                message_parts.append(
+                    f"<a href='{change['market_url']}'>{market_pair}</a>{spaces}{change_percentage}\n{'-' * max_line_length}\n")
+
         messages[exchange] = ''.join(message_parts)
 
     return messages

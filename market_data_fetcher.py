@@ -122,11 +122,11 @@ def fetch_exchange_market_data(coin_limit: int, exchange: str, save: bool = Fals
 
     try:
         response = get(api_url, headers={'User-Agent': ua.random})
-        logger.info("Запит до API виконано зі статусом {status_code}", status_code=response.status_code)
+        logger.success("Запит до API виконано зі статусом {status_code}", status_code=response.status_code)
 
         if response.status_code == 200:
             response_json = response.json()
-            logger.debug("Отримано валідну відповідь від API CoinMarketCap")
+            logger.success("Отримано валідну відповідь від API CoinMarketCap")
 
             if save:
                 save_response_to_file(response_json)
@@ -174,7 +174,7 @@ def save_market_pair_data_bulk(session: Session, market_pairs_list: list[dict]) 
         stmt = insert(MarketPairData).values(market_pairs_list)
         session.execute(stmt)
         session.commit()
-        logger.info("Дані успішно збережені у базу даних.")
+        logger.success("Дані успішно збережені у базу даних.\n")
 
     except Exception as e:
         session.rollback()
@@ -208,10 +208,10 @@ def process_market_pair_data(coin_limit: int, exchanges: list[str], save: bool) 
 
                 with SessionLocal() as db:
                     save_market_pair_data_bulk(session=db, market_pairs_list=data)
-                    time.sleep(random.uniform(5, 20))
+                    time.sleep(random.uniform(60, 120))
 
         # Затримка між циклами
-        time.sleep(random.uniform(500, 700))
+        time.sleep(random.uniform(400, 700))
 
 
 if __name__ == '__main__':

@@ -90,7 +90,7 @@ def generate_reports(session: Session, threshold: float) -> dict[str, dict[str, 
     repository = MarketPairRepository(session)
     exchanges = {record.exchange_name for record in session.query(MarketPairData.exchange_name).distinct()}
 
-    logger.info(f"Exchanges found: {exchanges}")
+    logger.success(f"Exchanges found: {exchanges}")
 
     for exchange in exchanges:
         exchange_reports = {}
@@ -161,7 +161,7 @@ def send_telegram_message(token: str, chat_id: str, message: str) -> None:
 
         # Логуємо лише якщо "ok": false
         if response_json.get('ok'):
-            logger.info('Message sent successfully!')
+            logger.success('Message sent successfully!')
         else:
             logger.error(f"Error sending message: {response_json}")
             logger.debug(f"Response content: {response.text}")

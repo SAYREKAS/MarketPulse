@@ -2,7 +2,7 @@ import json
 import sys
 import time
 import random
-from random import uniform
+from typing import Optional
 from datetime import datetime
 
 import requests
@@ -15,7 +15,9 @@ from pydantic import BaseModel, ValidationError
 
 from database import SessionLocal, MarketPairData
 
+logger.remove()
 logger.add(sys.stdout, colorize=True)
+
 
 class MarketPairQuote(BaseModel):
     id: str
@@ -47,7 +49,7 @@ class MarketPair(BaseModel):
     quoteCurrencyId: int
     price: float
     volumeUsd: float
-    effectiveLiquidity: float
+    effectiveLiquidity: Optional[float] = None
     lastUpdated: datetime
     quote: float
     volumeBase: float
@@ -126,9 +128,7 @@ def fetch_exchange_market_data(coin_limit: int, exchange: str, save: bool = Fals
             logger.debug("Отримано валідну відповідь від API CoinMarketCap")
 
             if save:
-                with open('coin_info.json', 'w', encoding='utf8') as file:
-                    json.dump(response_json, file, ensure_ascii=False, indent=4)
-                logger.info("Відповідь API збережена у 'coin_info.json'")
+                save_response_to_file(response_json)
 
             try:
                 data = ResponseData(**response_json)
@@ -149,6 +149,18 @@ def fetch_exchange_market_data(coin_limit: int, exchange: str, save: bool = Fals
         return False
 
 
+def save_response_to_file(response_json: dict) -> None:
+    """
+    Зберігає відповідь API у JSON файл.
+
+    Аргументи:
+        response_json (dict): Відповідь API у форматі словника.
+    """
+    with open('coin_info.json', 'w', encoding='utf8') as file:
+        json.dump(response_json, file, ensure_ascii=False, indent=4)
+    logger.info("Відповідь API збережена у 'coin_info.json'")
+
+
 def save_market_pair_data_bulk(session: Session, market_pairs_list: list[dict]) -> None:
     """
     Пакетне збереження інформації про ринкові пари у базу даних.
@@ -158,7 +170,6 @@ def save_market_pair_data_bulk(session: Session, market_pairs_list: list[dict]) 
         market_pairs_list (list[dict]): Список словників з інформацією про ринкові пари.
     """
     try:
-        # Пакетне вставлення даних
         stmt = insert(MarketPairData).values(market_pairs_list)
         session.execute(stmt)
         session.commit()
@@ -199,7 +210,7 @@ def process_market_pair_data(coin_limit: int, exchanges: list[str], save: bool) 
                     time.sleep(random.uniform(5, 20))
 
         # Затримка між циклами
-        time.sleep(uniform(500, 700))
+        time.sleep(random.uniform(500, 700))
 
 
 if __name__ == '__main__':

@@ -150,7 +150,8 @@ def send_telegram_message(token: str, chat_id: str, message: str) -> None:
     data = {
         'chat_id': chat_id,
         'text': message,
-        'parse_mode': 'HTML'
+        'parse_mode': 'HTML',
+        'disable_web_page_preview': True
     }
 
     try:
@@ -164,7 +165,6 @@ def send_telegram_message(token: str, chat_id: str, message: str) -> None:
         else:
             logger.error(f"Error sending message: {response_json}")
             logger.debug(f"Response content: {response.text}")
-
 
     except requests.exceptions.HTTPError as http_err:
         logger.error(f"HTTP error occurred: {http_err}")

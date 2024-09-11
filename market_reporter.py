@@ -134,6 +134,7 @@ def format_telegram_messages(
 def send_telegram_message(token: str, chat_id: str, message: str) -> None:
     """
     Надсилаємо повідомлення в Telegram з HTML форматуванням.
+    Виводимо вміст відповіді тільки у випадку, якщо "ok": false.
     """
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     data = {
@@ -142,21 +143,24 @@ def send_telegram_message(token: str, chat_id: str, message: str) -> None:
         'parse_mode': 'HTML'
     }
 
-    response = None
-
     try:
         response = requests.post(url, data=data)
         response.raise_for_status()
-        logger.info('Message sent successfully!')
-        logger.debug(f"Response content: {response.text}")  # Виведення вмісту відповіді
+        response_json = response.json()
+
+        # Логуємо лише якщо "ok": false
+        if response_json.get('ok'):
+            logger.info('Message sent successfully!')
+        else:
+            logger.error(f"Error sending message: {response_json}")
+            logger.debug(f"Response content: {response.text}")
+
+
     except requests.exceptions.HTTPError as http_err:
         logger.error(f"HTTP error occurred: {http_err}")
-        logger.debug(f"Response content: {response.text}")  # Виведення вмісту відповіді
+
     except Exception as err:
         logger.error(f"Other error occurred: {err}")
-    else:
-        if response:
-            logger.debug(f"Response content: {response.text}")  # Виведення вмісту відповіді
 
 
 def run_report_generation(threshold: float, check_interval: int, telegram_token: str, telegram_chat_id: str) -> None:

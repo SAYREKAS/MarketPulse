@@ -146,7 +146,7 @@ def format_telegram_messages(reports: dict[str, dict[str, list[dict[str, str | f
 
                 # Формуємо рядок з посиланням та вирівняним відсотком зміни
                 message_parts.append(
-                    f"<a href='{change['market_url']}'>{market_pair}</a>{spaces}{change_percentage}\n\n")
+                    f"<a href='{change['market_url']}'>{market_pair}</a>{spaces}{change_percentage}\n")
 
         messages[exchange] = ''.join(message_parts)
 

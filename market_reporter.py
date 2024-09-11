@@ -83,13 +83,21 @@ def generate_reports(session: Session, threshold: float) -> dict[str, dict[str, 
     repository = MarketPairRepository(session)
     exchanges = {record.exchange_name for record in session.query(MarketPairData.exchange_name).distinct()}
 
+    logger.info(f"Exchanges found: {exchanges}")
+
     for exchange in exchanges:
         exchange_reports = {}
         for interval_name, start_time in sorted(intervals.items(), key=lambda x: x[1], reverse=True):
             market_data = repository.get_market_pairs_in_timeframe(start_time, current_time)
+            logger.debug(f"Market data for {exchange} between {start_time} and {current_time}: [ {len(market_data)} ]")
+
             # Фільтруємо дані по біржі
             filtered_data = [data for data in market_data if data.exchange_name == exchange]
+            logger.debug(f"Filtered data for {exchange} {interval_name}: [ {len(filtered_data)} ]")
+
             report = filter_significant_changes(filtered_data, threshold, processed_market_pairs)
+            logger.debug(f"Report for {exchange} in interval {interval_name}: [ {len(report)} ]")
+
             if report:
                 exchange_reports[interval_name] = report
 
@@ -112,9 +120,11 @@ def format_telegram_messages(
         for interval, changes in intervals.items():
             message += f"\nІнтервал {interval}:\n-------------------------\n"
             for change in changes:
+                price = f"{change['price']:.6f}"  # Форматування до 6 десяткових знаків
+                change_percentage = f"{change['change_percentage']:.2f}"
                 message += (
                     f"<a href='{change['market_url']}'>{change['market_pair']}</a>:\n"
-                    f"{change['change_percentage']:.2f}% за {change['price']} USD\n"
+                    f"{change_percentage}% за {price} USD\n"
                 )
         messages[exchange] = message
 

@@ -186,32 +186,28 @@ def process_market_pair_data(coin_limit: int, exchanges: list[str], save: bool) 
     """
     Основна функція для отримання даних про ринкові пари для кількох бірж та їх збереження у базу даних.
     """
-    while True:
-        for exchange in exchanges:
-            info = fetch_exchange_market_data(coin_limit=coin_limit, exchange=exchange, save=save)
+    for exchange in exchanges:
+        info = fetch_exchange_market_data(coin_limit=coin_limit, exchange=exchange, save=save)
 
-            if info:
-                market_pairs = info.data.marketPairs
-                timestamp = info.status.timestamp
+        if info:
+            market_pairs = info.data.marketPairs
+            timestamp = info.status.timestamp
 
-                data = [
-                    {
-                        'market_pair': row.marketPair,
-                        'exchange_name': row.exchangeName,
-                        'category': row.category,
-                        'market_url': row.marketUrl,
-                        'price': row.price,
-                        'timestamp': timestamp
-                    }
-                    for row in market_pairs
-                ]
+            data = [
+                {
+                    'market_pair': row.marketPair,
+                    'exchange_name': row.exchangeName,
+                    'category': row.category,
+                    'market_url': row.marketUrl,
+                    'price': row.price,
+                    'timestamp': timestamp
+                }
+                for row in market_pairs
+            ]
 
-                with SessionLocal() as db:
-                    save_market_pair_data_bulk(session=db, market_pairs_list=data)
-                    time.sleep(random.uniform(60, 120))
-
-        # Затримка між циклами
-        time.sleep(random.uniform(400, 700))
+            with SessionLocal() as db:
+                save_market_pair_data_bulk(session=db, market_pairs_list=data)
+                time.sleep(random.uniform(60, 120))
 
 
 if __name__ == '__main__':

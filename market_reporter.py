@@ -185,25 +185,22 @@ def send_telegram_message(token: str, chat_id: str, message: str) -> None:
         logger.error(f"Other error occurred: {err}")
 
 
-def run_report_generation(threshold: float, check_interval: int, telegram_token: str, telegram_chat_id: str) -> None:
+def run_report_generation(threshold: float, telegram_token: str, telegram_chat_id: str) -> None:
     """
     Основна функція, яка керує процесом збору даних, формування звітів та відправлення повідомлень у Telegram.
     """
-    while True:
-        with SessionLocal() as session:
-            reports = generate_reports(session, threshold)
-            if reports:
-                messages = format_telegram_messages(reports)
-                for message in messages.values():
-                    send_telegram_message(telegram_token, telegram_chat_id, message)
-        sleep(check_interval)
+    with SessionLocal() as session:
+        reports = generate_reports(session, threshold)
+        if reports:
+            messages = format_telegram_messages(reports)
+            for message in messages.values():
+                send_telegram_message(telegram_token, telegram_chat_id, message)
 
 
 if __name__ == '__main__':
     logger.info("Starting report generation")
     run_report_generation(
         threshold=10.0,
-        check_interval=600,
         telegram_token=os.getenv('TG_TOKEN'),
         telegram_chat_id=os.getenv('TG_CHAT_ID')
     )

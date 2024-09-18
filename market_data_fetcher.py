@@ -10,11 +10,14 @@ import requests
 from requests import get
 from loguru import logger
 from sqlalchemy import insert
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from fake_useragent import UserAgent
 from pydantic import BaseModel, ValidationError
 
 from database import SessionLocal, MarketPairData
+
+load_dotenv()
 
 logger.remove()
 logger.add(sys.stdout, colorize=True)

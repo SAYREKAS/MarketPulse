@@ -6,9 +6,9 @@ from time import sleep, localtime, strftime
 from loguru import logger
 from dotenv import load_dotenv
 from database import SessionLocal
-from market_data_fetcher import process_market_pair_data
-from market_reporter import run_report_generation
 from old_data_remover import delete_old_records
+from market_reporter import run_report_generation
+from market_data_fetcher import process_market_pair_data
 
 load_dotenv()
 

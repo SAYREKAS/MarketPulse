@@ -4,8 +4,11 @@ from datetime import datetime, timedelta, timezone
 
 from loguru import logger
 from sqlalchemy import delete
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from database import MarketPairData, SessionLocal
+
+load_dotenv()
 
 logger.remove()
 logger.add(sys.stdout, colorize=True)

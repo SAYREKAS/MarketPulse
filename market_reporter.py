@@ -1,12 +1,10 @@
 import os
 import sys
-
-import requests
-from time import sleep
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_
+import requests
 from loguru import logger
+from sqlalchemy import and_
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 

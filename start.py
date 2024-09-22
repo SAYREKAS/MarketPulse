@@ -23,6 +23,7 @@ def is_within_schedule() -> bool:
         return True
 
     logger.info(f"Current time {current_time} is outside the schedule ({start_time} - {end_time}).")
+    sleep(1800)
     return False
 
 
@@ -33,8 +34,7 @@ def fetch_market_data():
     while True:
         if is_within_schedule():
             process_market_pair_data(coin_limit=int(os.getenv('PARSING_LIMIT')), exchanges=exchanges, save=False)
-
-        sleep(random.uniform(400, 600))
+            sleep(random.uniform(400, 600))
 
 
 def generate_reports():
@@ -47,8 +47,7 @@ def generate_reports():
                 telegram_token=os.getenv('TG_TOKEN'),
                 telegram_chat_id=os.getenv('TG_CHAT_ID')
             )
-
-        sleep(int(os.getenv('CHECK_INTERVAL')))
+            sleep(int(os.getenv('CHECK_INTERVAL')))
 
 
 def remove_old_records():
@@ -58,8 +57,7 @@ def remove_old_records():
         if is_within_schedule():
             with SessionLocal() as db_session:
                 delete_old_records(session=db_session, hours=int(os.getenv('HOURS_TO_REMOVE')))
-
-        sleep(int(os.getenv('REMOVE_CHECK_INTERVAL')))
+            sleep(int(os.getenv('REMOVE_CHECK_INTERVAL')))
 
 
 if __name__ == '__main__':
